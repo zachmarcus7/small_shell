@@ -73,7 +73,6 @@ void enableFgMode(int fgModeEnabled) {
 		foregroundMode = 1;
 	}
 	else {
-		//write is used here because of its reentrancy, writes line to standard out (1)
 		write(1, "\nExiting foreground-only mode\n", 31);
 		fflush(stdout);
 		foregroundMode = 0;
