@@ -198,59 +198,19 @@ int getInput(struct shellVars *shell) {
 
 
 /*********************************************************************
-* Function:    testInput
-* Description: This function tests the user input. Returns 1 if
-*              shell loop is meant to re-loop, otherwise it returns 2.
+* Function:    createNewProcess
+* Description: This function creates forks a new process and checks 
+*              whether foreground or background mode is currently enabled.
 * Parameters:  struct shellVars*
-* Returns:     int
+* Returns:     void
 *********************************************************************/
-int testInput(struct shellVars* shell) {
+void createNewProcess(struct shellVars* shell) {
 
-	//if user entered exit
-	if (!strcmp(shell->userArguments[0], "exit")) {
-		shell->run = 0;
-		exit(0);
-	}
-	//if user entered cd 
-	else if (!strcmp(shell->userArguments[0], "cd")) {
-		//check if there were arguments passed with cd
-		if (shell->userArguments[1] == NULL)
-			chdir(getenv("HOME"));
-		else {
-			if (chdir(shell->userArguments[1]) == -1) {
-				printf("No such directory\n");
-				fflush(stdout);
-			}
-		}
-	}
-	//if user entered status
-	else if (!strcmp(shell->userArguments[0], "status")) {
-		//if child process terminated normally
-		if (WIFEXITED(shell->childStatus)) {
-			printf("exit value %d\n", WEXITSTATUS(shell->childStatus));
-			fflush(stdout);
-		}
-		else {
-			printf("terminated by signal %d\n", WTERMSIG(shell->childStatus));
-			fflush(stdout);
-		}
-	}
-	//if user entered a comment
-	else if (*shell->userArguments[0] == '#') {
-		return 1;
-	}
-	//if foreground-only signal was received
-	else if (signalReceived) {
-		signalReceived = 0;
-		return 1;
-	}
-	//if user entered a different command
-	else {
-		//create a new process
-		shell->childPid = fork();
+	//create a new process
+	shell->childPid = fork();
 
-		//check what kind of process is running
-		switch (shell->childPid) {
+	//check what kind of process is running
+	switch (shell->childPid) {
 		//error in creating process
 		case -1:
 			shell->childStatus = 1;
@@ -348,7 +308,7 @@ int testInput(struct shellVars* shell) {
 			printf("%s: no such file or directory\n", shell->userArguments[0]);
 			exit(2);
 			break;
-			//parent process
+		//parent process
 		default:
 			//if foregroundMode is active, parent must wait till all processes complete
 			if (foregroundMode) {
@@ -378,6 +338,60 @@ int testInput(struct shellVars* shell) {
 			}
 			break;
 		}
+}
+
+
+
+/*********************************************************************
+* Function:    testInput
+* Description: This function tests the user input. Returns 1 if
+*              shell loop is meant to re-loop, otherwise it returns 2.
+* Parameters:  struct shellVars*
+* Returns:     int
+*********************************************************************/
+int testInput(struct shellVars* shell) {
+
+	//if user entered exit
+	if (!strcmp(shell->userArguments[0], "exit")) {
+		shell->run = 0;
+		exit(0);
+	}
+	//if user entered cd 
+	else if (!strcmp(shell->userArguments[0], "cd")) {
+		//check if there were arguments passed with cd
+		if (shell->userArguments[1] == NULL)
+			chdir(getenv("HOME"));
+		else {
+			if (chdir(shell->userArguments[1]) == -1) {
+				printf("No such directory\n");
+				fflush(stdout);
+			}
+		}
+	}
+	//if user entered status
+	else if (!strcmp(shell->userArguments[0], "status")) {
+		//if child process terminated normally
+		if (WIFEXITED(shell->childStatus)) {
+			printf("exit value %d\n", WEXITSTATUS(shell->childStatus));
+			fflush(stdout);
+		}
+		else {
+			printf("terminated by signal %d\n", WTERMSIG(shell->childStatus));
+			fflush(stdout);
+		}
+	}
+	//if user entered a comment
+	else if (*shell->userArguments[0] == '#') {
+		return 1;
+	}
+	//if foreground-only signal was received
+	else if (signalReceived) {
+		signalReceived = 0;
+		return 1;
+	}
+	//if user entered a different command
+	else {
+		createNewProcess(shell);
 	}
 	return 2;
 }
